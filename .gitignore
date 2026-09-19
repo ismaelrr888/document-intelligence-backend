@@ -489,3 +489,12 @@ $RECYCLE.BIN/
 
 # JetBrains Rider
 .idea/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Local development configuration
+appsettings.Local.json
+appsettings.Development.json
