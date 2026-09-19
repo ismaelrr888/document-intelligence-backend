@@ -1,3 +1,4 @@
+using Auth.Application.Services;
 using Auth.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 
 builder.Services.AddInfrastructure();
+builder.Services.AddScoped<AuthService>();
+
 
 var app = builder.Build();
 
