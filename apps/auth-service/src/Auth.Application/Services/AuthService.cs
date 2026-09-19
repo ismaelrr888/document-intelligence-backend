@@ -1,5 +1,6 @@
 using Auth.Application.Abstractions.Security;
 using Auth.Application.Interfaces;
+using Auth.Domain.User;
 
 namespace Auth.Application.Services;
 
@@ -24,5 +25,23 @@ public class AuthService : IAuthService
         }
 
         return _passwordHasher.Verify(password, user.PasswordHash);
+    }
+
+    public async Task<bool> RegisterAsync(string email, string password)
+    {
+        var existingUser = await _userRepository.GetByEmailAsync(email);
+
+        if (existingUser is not null)
+        {
+            return false;
+        }
+
+        var passwordHash = _passwordHasher.Hash(password);
+
+        var user = new User(email, passwordHash);
+        
+        await _userRepository.AddAsync(user);
+
+        return true;
     }
 }
