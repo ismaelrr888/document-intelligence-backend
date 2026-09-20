@@ -15,6 +15,8 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
@@ -27,6 +29,21 @@ public class AuthController : ControllerBase
             return Conflict();
         }
 
+        return Ok();
+    }
+
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [HttpPost("login")]
+    public async Task<IActionResult> Login(LoginRequest request)
+    {
+        var result = await _authService.LoginAsync(request.Email, request.Password);
+        
+        if (!result)
+        {
+            return Unauthorized();
+        }
+        
         return Ok();
     }
 }
