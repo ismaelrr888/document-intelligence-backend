@@ -49,7 +49,33 @@ public class AuthController : ControllerBase
             return Unauthorized(new ErrorResponse("Invalid credentials"));
         }
 
-        return Ok(new LoginResponse(result.Token!, result.ExpiresAtUtc!.Value));
+        return Ok(new LoginResponse(result.Token!, result.ExpiresAtUtc!.Value, result.RefreshToken!));
+    }
+
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(RefreshRequest request)
+    {
+        var result = await _authService.RefreshAsync(request.RefreshToken);
+
+        if (!result.Succeeded)
+        {
+            return Unauthorized(new ErrorResponse("Invalid or expired refresh token"));
+        }
+
+        return Ok(new LoginResponse(result.Token!, result.ExpiresAtUtc!.Value, result.RefreshToken!));
+    }
+
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(LogoutRequest request)
+    {
+        // Always respond 204 regardless of whether the token was valid/active,
+        // to avoid leaking whether a given refresh token exists.
+        await _authService.LogoutAsync(request.RefreshToken);
+
+        return NoContent();
     }
 
     [Authorize]

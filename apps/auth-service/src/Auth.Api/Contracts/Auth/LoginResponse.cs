@@ -2,5 +2,6 @@ namespace Auth.Api.Contracts.Auth;
 
 public sealed record LoginResponse(
     string AccessToken,
-    DateTimeOffset ExpiresAtUtc
+    DateTimeOffset ExpiresAtUtc,
+    string RefreshToken
 );
