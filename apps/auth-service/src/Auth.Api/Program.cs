@@ -12,7 +12,38 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options =>
+{
+    // Declare the Bearer scheme so Swagger UI shows an "Authorize" button
+    // and lets you attach a JWT to protected endpoints like GET /auth/me.
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Components ??= new();
+        document.Components.SecuritySchemes["Bearer"] = new()
+        {
+            Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT"
+        };
+
+        foreach (var operation in document.Paths.Values.SelectMany(path => path.Operations.Values))
+        {
+            operation.Security.Add(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+            {
+                [new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                    {
+                        Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                }] = Array.Empty<string>()
+            });
+        }
+
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddControllers();
 
 builder.Services.AddInfrastructure(builder.Configuration);
