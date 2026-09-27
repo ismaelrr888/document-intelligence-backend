@@ -37,6 +37,7 @@ public sealed class AuthEndpointsTests : IClassFixture<AuthApiFactory>
         Assert.NotNull(body);
         Assert.False(string.IsNullOrWhiteSpace(body!.AccessToken));
         Assert.True(body.ExpiresAtUtc > DateTimeOffset.UtcNow);
+        Assert.False(string.IsNullOrWhiteSpace(body.RefreshToken));
     }
 
     [Fact]
@@ -109,5 +110,85 @@ public sealed class AuthEndpointsTests : IClassFixture<AuthApiFactory>
 
         Assert.NotNull(meBody);
         Assert.Equal(email, meBody!.Email);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Valid_Token_Returns_New_Token_Pair()
+    {
+        var email = $"{Guid.NewGuid()}@example.com";
+        const string password = "Sup3rSecret!";
+
+        await _client.PostAsJsonAsync("/auth/register", new RegisterRequest(email, password));
+        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(email, password));
+        var loginBody = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        var refreshResponse = await _client.PostAsJsonAsync(
+            "/auth/refresh",
+            new RefreshRequest(loginBody!.RefreshToken));
+
+        Assert.Equal(HttpStatusCode.OK, refreshResponse.StatusCode);
+
+        var refreshBody = await refreshResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        Assert.NotNull(refreshBody);
+        Assert.False(string.IsNullOrWhiteSpace(refreshBody!.AccessToken));
+        Assert.NotEqual(loginBody.RefreshToken, refreshBody.RefreshToken);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Already_Used_Token_Returns_Unauthorized()
+    {
+        var email = $"{Guid.NewGuid()}@example.com";
+        const string password = "Sup3rSecret!";
+
+        await _client.PostAsJsonAsync("/auth/register", new RegisterRequest(email, password));
+        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(email, password));
+        var loginBody = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        await _client.PostAsJsonAsync("/auth/refresh", new RefreshRequest(loginBody!.RefreshToken));
+        var secondAttempt = await _client.PostAsJsonAsync(
+            "/auth/refresh",
+            new RefreshRequest(loginBody.RefreshToken));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, secondAttempt.StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Unknown_Token_Returns_Unauthorized()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/refresh", new RefreshRequest("not-a-real-token"));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Logout_Then_Refresh_Returns_Unauthorized()
+    {
+        var email = $"{Guid.NewGuid()}@example.com";
+        const string password = "Sup3rSecret!";
+
+        await _client.PostAsJsonAsync("/auth/register", new RegisterRequest(email, password));
+        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(email, password));
+        var loginBody = await loginResponse.Content.ReadFromJsonAsync<LoginResponse>();
+
+        var logoutResponse = await _client.PostAsJsonAsync(
+            "/auth/logout",
+            new LogoutRequest(loginBody!.RefreshToken));
+
+        Assert.Equal(HttpStatusCode.NoContent, logoutResponse.StatusCode);
+
+        var refreshResponse = await _client.PostAsJsonAsync(
+            "/auth/refresh",
+            new RefreshRequest(loginBody.RefreshToken));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, refreshResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Logout_With_Unknown_Token_Still_Returns_NoContent()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/logout", new LogoutRequest("not-a-real-token"));
+
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 }
