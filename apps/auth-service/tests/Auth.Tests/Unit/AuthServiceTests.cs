@@ -129,6 +129,38 @@ public sealed class AuthServiceTests
     }
 
     [Fact]
+    public async Task RefreshAsync_With_Expired_Token_Fails()
+    {
+        var user = new User("user@example.com", "hash");
+        // Created already past its expiration, no need to wait for real time to pass.
+        var expiredToken = new RefreshToken(user.Id, "hashed-token", DateTimeOffset.UtcNow.AddDays(-1));
+
+        _refreshTokenService.Setup(r => r.Hash("raw-token")).Returns("hashed-token");
+        _refreshTokenRepository.Setup(r => r.GetByTokenHashAsync("hashed-token")).ReturnsAsync(expiredToken);
+
+        var result = await _sut.RefreshAsync("raw-token");
+
+        Assert.False(result.Succeeded);
+        _refreshTokenRepository.Verify(r => r.UpdateAsync(It.IsAny<RefreshToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_With_Valid_Token_But_Deleted_User_Fails()
+    {
+        var userId = Guid.NewGuid();
+        var refreshToken = new RefreshToken(userId, "hashed-token", DateTimeOffset.UtcNow.AddDays(7));
+
+        _refreshTokenService.Setup(r => r.Hash("raw-token")).Returns("hashed-token");
+        _refreshTokenRepository.Setup(r => r.GetByTokenHashAsync("hashed-token")).ReturnsAsync(refreshToken);
+        _userRepository.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((User?)null);
+
+        var result = await _sut.RefreshAsync("raw-token");
+
+        Assert.False(result.Succeeded);
+        _jwtTokenService.Verify(j => j.GenerateToken(It.IsAny<User>()), Times.Never);
+    }
+
+    [Fact]
     public async Task RefreshAsync_With_Valid_Token_Rotates_It_And_Returns_New_Pair()
     {
         var user = new User("user@example.com", "hash");
@@ -179,5 +211,21 @@ public sealed class AuthServiceTests
         Assert.True(result);
         Assert.False(refreshToken.IsActive);
         _refreshTokenRepository.Verify(r => r.UpdateAsync(refreshToken), Times.Once);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_With_Already_Revoked_Token_Is_Idempotent_And_Returns_False()
+    {
+        var user = new User("user@example.com", "hash");
+        var refreshToken = new RefreshToken(user.Id, "hashed-token", DateTimeOffset.UtcNow.AddDays(7));
+        refreshToken.Revoke();
+
+        _refreshTokenService.Setup(r => r.Hash("raw-token")).Returns("hashed-token");
+        _refreshTokenRepository.Setup(r => r.GetByTokenHashAsync("hashed-token")).ReturnsAsync(refreshToken);
+
+        var result = await _sut.LogoutAsync("raw-token");
+
+        Assert.False(result);
+        _refreshTokenRepository.Verify(r => r.UpdateAsync(It.IsAny<RefreshToken>()), Times.Never);
     }
 }
