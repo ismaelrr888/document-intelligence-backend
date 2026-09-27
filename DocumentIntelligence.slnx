@@ -1,0 +1,17 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/apps/" />
+  <Folder Name="/apps/auth-service/" />
+  <Folder Name="/apps/auth-service/src/" />
+  <Folder Name="/apps/auth-service/tests/">
+    <Project Path="apps/auth-service/tests/Auth.Tests/Auth.Tests.csproj" />
+  </Folder>
+  <Project Path="apps/auth-service/src/Auth.Api/Auth.Api.csproj" />
+  <Project Path="apps/auth-service/src/Auth.Application/Auth.Application.csproj" />
+  <Project Path="apps/auth-service/src/Auth.Domain/Auth.Domain.csproj" />
+  <Project Path="apps/auth-service/src/Auth.Infrastructure/Auth.Infrastructure.csproj" />
+</Solution>
