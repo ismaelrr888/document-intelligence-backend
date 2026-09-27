@@ -10,11 +10,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Auth.Tests.Integration;
 
 /// <summary>
-/// Boots the real Auth.Api host for integration tests, replacing the SQL Server
-/// backed <see cref="AuthDbContext"/> with an isolated in-memory database and
-/// injecting a test-only JWT signing secret (never a real one).
+/// Same setup as <see cref="AuthApiFactory"/> but with a deliberately low login
+/// rate limit, so tests can trip it deterministically in a couple of requests.
 /// </summary>
-public sealed class AuthApiFactory : WebApplicationFactory<Program>
+public sealed class RateLimitedAuthApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = Guid.NewGuid().ToString();
 
@@ -28,9 +27,7 @@ public sealed class AuthApiFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "Auth.Tests.Issuer",
                 ["Jwt:Audience"] = "Auth.Tests.Audience",
                 ["Jwt:ExpirationMinutes"] = "60",
-                // High enough that the integration test suite (many logins from the
-                // same loopback IP) never trips the limiter meant for real clients.
-                ["RateLimiting:LoginPermitLimit"] = "1000",
+                ["RateLimiting:LoginPermitLimit"] = "2",
                 ["RateLimiting:LoginWindowSeconds"] = "60"
             });
         });
