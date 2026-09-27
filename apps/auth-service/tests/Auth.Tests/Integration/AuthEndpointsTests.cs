@@ -192,3 +192,33 @@ public sealed class AuthEndpointsTests : IClassFixture<AuthApiFactory>
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
     }
 }
+
+/// <summary>
+/// Exercises the login rate limiter with a deliberately low permit limit so the
+/// test suite doesn't need to send hundreds of requests to trip it.
+/// </summary>
+public sealed class AuthLoginRateLimitingTests : IClassFixture<RateLimitedAuthApiFactory>
+{
+    private readonly HttpClient _client;
+
+    public AuthLoginRateLimitingTests(RateLimitedAuthApiFactory factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task Login_Beyond_Permit_Limit_Returns_TooManyRequests()
+    {
+        var email = $"{Guid.NewGuid()}@example.com";
+        var request = new LoginRequest(email, "wrong-password");
+
+        // RateLimitedAuthApiFactory caps login attempts at 2 per window.
+        var first = await _client.PostAsJsonAsync("/auth/login", request);
+        var second = await _client.PostAsJsonAsync("/auth/login", request);
+        var third = await _client.PostAsJsonAsync("/auth/login", request);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, first.StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, second.StatusCode);
+        Assert.Equal(HttpStatusCode.TooManyRequests, third.StatusCode);
+    }
+}

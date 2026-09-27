@@ -1,9 +1,12 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using Auth.Api.Configuration;
 using Auth.Application.Interfaces;
 using Auth.Application.Services;
 using Auth.Infrastructure;
 using Auth.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -82,6 +85,31 @@ builder.Services
 
 builder.Services.AddAuthorization();
 
+builder.Services
+    .AddOptions<RateLimitingOptions>()
+    .Bind(builder.Configuration.GetSection(RateLimitingOptions.SectionName));
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Partitioned by client IP so one abusive caller can't exhaust the quota
+    // for every other user attempting to log in.
+    options.AddPolicy(RateLimitingOptions.LoginPolicyName, httpContext =>
+    {
+        var rateLimitingOptions = httpContext.RequestServices
+            .GetRequiredService<IOptions<RateLimitingOptions>>().Value;
+        var partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = rateLimitingOptions.LoginPermitLimit,
+            Window = TimeSpan.FromSeconds(rateLimitingOptions.LoginWindowSeconds),
+            QueueLimit = 0
+        });
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -98,6 +126,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,9 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Auth.Api.Configuration;
 using Auth.Api.Contracts.Auth;
 using Auth.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Auth.Api.Controllers;
 
@@ -37,6 +39,8 @@ public class AuthController : ControllerBase
 
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [EnableRateLimiting(RateLimitingOptions.LoginPolicyName)]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
