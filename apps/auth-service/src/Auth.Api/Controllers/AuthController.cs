@@ -105,8 +105,7 @@ public class AuthController : ControllerBase
     [HttpPost("logout-all-sessions")]
     public async Task<IActionResult> LogoutAllSessions()
     {
-        var userIdClaim = User.FindFirstValue(
-            ClaimTypes.NameIdentifier);
+        var userIdClaim = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
         if (!Guid.TryParse(userIdClaim, out var userId))
         {
