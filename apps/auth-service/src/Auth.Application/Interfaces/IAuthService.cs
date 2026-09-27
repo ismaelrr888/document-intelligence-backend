@@ -18,4 +18,6 @@ public interface IAuthService
     /// tokens. Idempotent: returns true whether or not the token was active.
     /// </summary>
     Task<bool> LogoutAsync(string refreshToken);
+    
+    Task LogoutAllSessionsAsync(Guid userId);
 }

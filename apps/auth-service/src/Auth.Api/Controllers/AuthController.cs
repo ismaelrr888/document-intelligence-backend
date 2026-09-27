@@ -98,4 +98,23 @@ public class AuthController : ControllerBase
 
         return Ok(new MeResponse(Guid.Parse(userId), email));
     }
+
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [HttpPost("logout-all-sessions")]
+    public async Task<IActionResult> LogoutAllSessions()
+    {
+        var userIdClaim = User.FindFirstValue(
+            ClaimTypes.NameIdentifier);
+
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        await _authService.LogoutAllSessionsAsync(userId);
+
+        return NoContent();
+    }
 }
