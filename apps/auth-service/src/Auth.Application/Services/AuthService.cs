@@ -110,4 +110,9 @@ public class AuthService : IAuthService
 
         return LoginResult.Success(accessToken, expiresAtUtc, rawRefreshToken);
     }
+    
+    public async Task LogoutAllSessionsAsync(Guid userId)
+    {
+        await _refreshTokenRepository.RevokeAllForUserAsync(userId);
+    }
 }
