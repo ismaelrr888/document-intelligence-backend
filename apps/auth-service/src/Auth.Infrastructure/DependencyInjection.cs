@@ -18,7 +18,12 @@ public static class DependencyInjection
     {
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IUserRepository, UserRepository>();
-        
+        services.AddScoped<IJwtTokenService, JwtTokenService>();
+
+        services
+            .AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName));
+
         var connectionString = configuration.GetConnectionString("AuthDatabase");
         
         services.AddDbContext<AuthDbContext>(options =>
