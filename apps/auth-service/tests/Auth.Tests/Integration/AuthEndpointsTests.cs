@@ -52,6 +52,53 @@ public sealed class AuthEndpointsTests : IClassFixture<AuthApiFactory>
         Assert.Equal(HttpStatusCode.Conflict, secondAttempt.StatusCode);
     }
 
+    [Theory]
+    [InlineData("not-an-email", "Sup3rSecret!")]
+    [InlineData("", "Sup3rSecret!")]
+    [InlineData("valid@example.com", "short")]
+    [InlineData("valid@example.com", "")]
+    [InlineData("valid@example.com", "alllowercase1!")] // missing uppercase
+    [InlineData("valid@example.com", "ALLUPPERCASE1!")] // missing lowercase
+    [InlineData("valid@example.com", "NoDigitsHere!")]  // missing digit
+    [InlineData("valid@example.com", "NoSpecialChar1")] // missing special char
+    public async Task Register_With_Invalid_Input_Returns_BadRequest(string email, string password)
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/auth/register",
+            new RegisterRequest(email, password));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("not-an-email", "Sup3rSecret!")]
+    [InlineData("", "Sup3rSecret!")]
+    [InlineData("valid@example.com", "")]
+    public async Task Login_With_Invalid_Input_Returns_BadRequest(string email, string password)
+    {
+        var response = await _client.PostAsJsonAsync(
+            "/auth/login",
+            new LoginRequest(email, password));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Refresh_With_Empty_Token_Returns_BadRequest()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/refresh", new RefreshRequest(""));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Logout_With_Empty_Token_Returns_BadRequest()
+    {
+        var response = await _client.PostAsJsonAsync("/auth/logout", new LogoutRequest(""));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     [Fact]
     public async Task Login_With_Unknown_Email_Returns_Unauthorized()
     {

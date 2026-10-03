@@ -21,6 +21,7 @@ public class AuthController : ControllerBase
     }
 
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
@@ -38,6 +39,7 @@ public class AuthController : ControllerBase
     }
 
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [EnableRateLimiting(RateLimitingOptions.LoginPolicyName)]
@@ -57,6 +59,7 @@ public class AuthController : ControllerBase
     }
 
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh(RefreshRequest request)
@@ -72,6 +75,7 @@ public class AuthController : ControllerBase
     }
 
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout(LogoutRequest request)
     {
